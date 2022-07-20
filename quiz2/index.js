@@ -1,3 +1,4 @@
+/* Can you find a vulnerability in this JavaScript code? */
 const express = require("express");
 const { execSync } = require("child_process");
 const app = express();
