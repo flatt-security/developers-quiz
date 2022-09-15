@@ -1,0 +1,24 @@
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<title>リダイレクトページ</title>
+</head>
+
+<body>
+	<form>
+		<label for="url">リダイレクト先のURLを入力してください:</label>
+		<input type="text" name="url" placeholder="https://example.com" id="url">
+		<input type="submit">
+	</form>
+	<p id="flag">FLATT{CAN_YOU_GET_ME?}</p>
+	<script>
+		const params = new URLSearchParams(location.search);
+		const url = params.get("url");
+		if (url) {
+			location.href = url;
+		}
+	</script>
+</body>
+
+</html>

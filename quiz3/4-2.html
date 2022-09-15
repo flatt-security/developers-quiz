@@ -1,0 +1,29 @@
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<title>リダイレクトページ 2</title>
+</head>
+
+<body>
+	<form>
+		<label for="url">リダイレクト先を入力してください (static.twitter-quiz.flatt.training内のURLを指定してください！): </label>
+		<input type="text" name="url" placeholder="https://static.twitter-quiz.flatt.training/" id="url">
+		<input type="submit">
+	</form>
+	<p id="flag">FLATT{YOU_CANT_GET_ME!}</p>
+	<script>
+		const params = new URLSearchParams(location.search);
+		const url = params.get("url");
+		if (url) {
+			try {
+				const parsed = new URL(url);
+				if (parsed.origin === window.origin) {
+					location.href = url;
+				}
+			} catch (_) { }
+		}
+	</script>
+</body>
+
+</html>
