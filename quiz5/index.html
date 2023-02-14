@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="jp">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dog Labylinth</title>
+  </head>
+  <body>
+    <h1><span id="name"></span>さんのマイページ</h1>
+    <div>
+      <p>
+        あなたのロール: <span id="role"></span>
+      </p>
+
+      <div style="border: 1px; margin-top: 10px;">
+        <form action="./api/profile" method="post" id="name-form">
+          <button type="submit">名前を更新</button>
+          <input placeholder="お名前" id="name-input">
+        </form>
+
+        <form action="./api/profile" method="post" id="role-form">
+          <button type="submit">ロールを更新</button>
+          <select id="role-input">
+            <option value="engineer">engineer</option>
+            <option value="sales">sales</option>
+          </select>
+        </form>
+      </div>
+    </div>
+
+    <div style="margin-top: 10px">
+      <a href="./admin">管理者ページ</a>
+    </div>
+  </body>
+
+  <script>
+    fetch('./api/profile').then((res) => {
+      res.text().then((txt) => {
+        let user = JSON.parse(txt);
+        document.getElementById('name').innerText = user.name;
+        document.getElementById('role').innerText = user.role;
+      })
+    });
+
+    const setEvent = (selector, inputSelector, paramName, callback) => {
+      let name = document.querySelector(selector).addEventListener('submit', (e) => {
+        e.preventDefault();
+        let value = document.querySelector(inputSelector).value;
+        fetch('./api/profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            [paramName]: value,
+          }),
+        }).then(callback);
+      });
+      document.querySelector(selector).addEventListener(event, callback);
+    };
+
+    setEvent('form#name-form', 'input#name-input', 'name', (res) => {
+      res.text().then((txt) => {
+        window.open('./', '_self');
+      })
+    });
+    setEvent('form#role-form', 'select#role-input', 'role', (res) => {
+      res.json().then(({ waitingApproval }) => {
+        if (waitingApproval) {
+          alert('ロールを更新するには上司からの承認が必要です。\n上司からの承認待ちです。');
+        }
+        window.open('./', '_self');
+      })
+    });
+  </script>
+</html>
