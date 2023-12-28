@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      preflight: false,
+    }
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.21/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Vote App</title>
+  <style>
+    body {
+      font-family: 'Raleway', sans-serif, 'Segoe UI Emoji', 'Apple Color Emoji';
+    }
+  </style>
+</head>
+
+<body>
+  <header
+    class="header flex justify-between items-center p-2 md:flex-row flex-col w-full border-b-[1px] border-slate-700">
+    <h1 class="text-6xl font-bold p-4">Election</h1>
+    <div class="login-form flex md:flex-row flex-col w-full justify-end">
+      <input id="username" type="text" placeholder="username" class="input input-bordered rounded-lg mr-2">
+      <input id="session" type="text" placeholder="session id" class="input input-bordered rounded-lg mr-2">
+      <button class="btn btn-primary" onclick="register()">Login / Register</button>
+    </div>
+  </header>
+  <div class="text-center">
+    <h2 id="result" class="text-9xl m-8">
+    </h2>
+    <div class="button-container" hidden>
+      <button class="btn btn-accent btn-outline w-24 my-2">Dog</button>
+      <button class="btn btn-accent btn-outline w-24 my-2">Cat</button>
+      <button class="btn btn-accent btn-outline w-24 my-2">Fox</button>
+      <button class="btn btn-accent btn-outline w-24 my-2">Giraffe</button>
+      <button class="btn btn-accent btn-outline w-24 my-2">Wolf</button>
+    </div>
+
+    <div role="alert" class="alert alert-error w-full md:w-2/3 m-4 mx-auto" id="alertbox" hidden>
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+          d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span id="errormsg"></span>
+    </div>
+    <div role="alert" class="alert alert-success w-full md:w-2/3 m-4 mx-auto" id="successbox" hidden>
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span id="successmsg">Successfully voted!</span>
+    </div>
+  </div>
+
+
+  <script>
+    let session_id = null;
+    let username = null;
+    let successBoxHideAfter = new Date();
+
+    async function updateButton() {
+      const response = await fetch('/result', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': session_id
+        },
+        body: JSON.stringify({ username })
+      });
+      const buttons = document.querySelectorAll('.button-container button');
+      const data = await response.json();
+      const candidate = data.candidate;
+      buttons.forEach(button => {
+        button.classList.remove('bg-base-300');
+        if (button.textContent === candidate) {
+          button.classList.add('bg-base-300');
+        }
+      });
+    }
+
+    async function register() {
+      const user = document.getElementById('username').value;
+      const ses = document.getElementById('session').value;
+      const response = await fetch('/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ "username": user, "session_id": ses })
+      });
+
+      if (!response.ok) {
+        document.getElementById('errormsg').innerText = await response.text();
+        document.getElementById('alertbox').hidden = false;
+        return;
+      }
+      document.getElementById('alertbox').hidden = true;
+
+      const data = await response.json();
+      username = user;
+      session_id = data.session_id;
+
+      localStorage.setItem('username', username);
+      localStorage.setItem('session_id', session_id);
+
+      if (session_id) {
+        document.querySelector('.button-container').hidden = false;
+        updateResults();
+      }
+      document.getElementById('session').value = session_id;
+      if (ses === session_id) {
+        await updateButton();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async function () {
+      updateResults();
+      const container = document.querySelector('.button-container');
+
+      if (localStorage.getItem('username') && localStorage.getItem('session_id')) {
+        username = localStorage.getItem('username');
+        session_id = localStorage.getItem('session_id');
+        document.getElementById('username').value = username;
+        document.getElementById('session').value = session_id;
+        document.querySelector('.button-container').style.display = 'block';
+        await updateButton();
+      }
+      container.addEventListener('click', async function (event) {
+        if (event.target.tagName === 'BUTTON') {
+          const candidate = event.target.textContent;
+          const response = await fetch('/vote', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': session_id
+            },
+            body: JSON.stringify({ username, candidate })
+          });
+
+          if (!response.ok) {
+            document.getElementById('errormsg').innerText = "failed to vote";
+            document.getElementById('alertbox').hidden = false;
+            return;
+          }
+          document.getElementById('errormsg').innerText = "";
+          document.getElementById('alertbox').hidden = true
+          document.getElementById('successbox').hidden = false;
+          document.getElementById('successmsg').innerText = `Successfully voted to ${candidate}!`;
+          successBoxHideAfter = new Date((new Date()).getTime() + 5000);
+          setTimeout(() => {
+            if (new Date() >= successBoxHideAfter) {
+              document.getElementById('successbox').hidden = true;
+            }
+          }, 5000);
+
+          await updateButton();
+
+          updateResults();
+        }
+      });
+    });
+
+    async function updateResults() {
+      const response = await fetch('/summary');
+      if (!response.ok) {
+        document.getElementById('errormsg').innerText = "failed to get summary";
+        return;
+      }
+
+      const data = await response.json();
+      document.getElementById('result').innerText = `👑 ${data.candidate}`;
+    }
+
+  </script>
+</body>
+
+</html>
