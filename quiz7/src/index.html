@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      preflight: false,
+    }
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.21/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Super Secure Bank</title>
+  <style>
+    body {
+      font-family: 'Raleway', sans-serif, 'Segoe UI Emoji', 'Apple Color Emoji';
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 min-h-dvh">
+  <header
+    class="header flex justify-between items-center p-2 md:flex-row flex-col w-full bg-white shadow shadow-slate-200">
+    <h1 class="text-6xl font-bold p-2 md:p-6 tracking-tighter">Super Secure Bank</h1>
+  </header>
+
+  <div class="text-center m-4 md:m-8">
+
+    <h2 class="text-left text-3xl font-bold">Registration</h2>
+    <div class="login-form flex md:flex-row flex-col gap-2 w-full justify-left m-4 ml-0">
+      <input id="username" type="text" placeholder="username" class="input input-bordered rounded-lg">
+      <button class="btn btn-primary" onclick="register()">Register</button>
+      <p id="id-result" class="m-4"></p>
+    </div>
+
+    <h2 class="text-left text-3xl font-bold mt-12">Money Transfer</h2>
+    <div class="flex md:flex-row flex-col gap-2 w-full justify-left items-start md:items-end">
+      <div>
+        <h3 class="text-left text-xl font-bold mt-4">Sender ID</h3>
+        <input id="from-id" type="text" placeholder="user id"
+          class="input input-bordered rounded-lg mt-1 display-block">
+      </div>
+      <div>
+        <h3 class="text-left text-xl font-bold mt-4">Recipient ID</h3>
+        <input id="to-id" type="text" placeholder="user id" class="input input-bordered rounded-lg mt-1 display-block">
+      </div>
+      <div>
+        <h3 class="text-left text-xl font-bold mt-4">Amount</h3>
+        <input id="amount" type="text" placeholder="5" class="input input-bordered rounded-lg mt-1 display-block">
+      </div>
+      <button class="btn btn-primary" onclick="transfer()">Transfer</button>
+    </div>
+
+    <h2 class="text-left text-3xl font-bold mt-12">Check Your Balance</h2>
+    <p class="text-left mt-2">* Initial balance is 10.</p>
+    <div class="flex md:flex-row flex-col gap-2 w-full justify-left m-4 ml-0">
+      <input id="check-id" type="text" placeholder="user id" class="input input-bordered rounded-lg">
+      <button class="btn btn-primary" onclick="check()">Check</button>
+      <p id="balance" class="m-4"></p>
+    </div>
+
+    <div role="alert" class="alert alert-error w-full md:w-2/3 m-4 ml-0 mx-auto text-white font-bold" id="alertbox"
+      hidden>
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+          d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span id="errormsg"></span>
+    </div>
+    <div role="alert" class="alert alert-success w-full md:w-2/3 m-4 ml-0 mx-auto text-white font-bold" id="successbox"
+      hidden>
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span id="successmsg">Successfully transferred!</span>
+    </div>
+  </div>
+
+
+  <script>
+    let successBoxHideAfter = new Date();
+
+    async function handleError(res) {
+      if (!res.ok) {
+        const reason = await res.json();
+        document.getElementById('errormsg').innerText = reason.error;
+        document.getElementById('alertbox').hidden = false;
+        return false;
+      }
+      document.getElementById('alertbox').hidden = true;
+      return true;
+    }
+    async function register() {
+      const username = document.getElementById('username').value;
+      const response = await fetch('/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username })
+      });
+      if (!await handleError(response)) {
+        return;
+      }
+
+      if (await response.status == 200) {
+        const data = await response.json();
+        const id = data.id;
+        document.getElementById('id-result').innerText = `Your ID: ${id}`;
+      }
+    }
+
+    async function transfer() {
+      const fromID = document.getElementById('from-id').value;
+      const toID = document.getElementById('to-id').value;
+      const amount = parseInt(document.getElementById('amount').value);
+      const response = await fetch('/transfer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fromID, toID, amount
+        })
+      });
+      if (!await handleError(response)) {
+        return;
+      }
+
+      if (await response.status == 200) {
+        const data = await response.json();
+        document.getElementById('successbox').hidden = false;
+        document.getElementById('successmsg').innerText = data.receipt
+        successBoxHideAfter = new Date((new Date()).getTime() + 5000);
+        setTimeout(() => {
+          if (new Date() >= successBoxHideAfter) {
+            document.getElementById('successbox').hidden = true;
+          }
+        }, 5000);
+      }
+    }
+    async function check() {
+      const user = document.getElementById('check-id').value;
+      const response = await fetch(`/user/${user}`, {
+        method: 'GET',
+      });
+      if (!await handleError(response)) {
+        return;
+      }
+
+      if (await response.status == 200) {
+        const data = await response.json();
+        const balance = data.balance;
+        document.getElementById('balance').innerText = `Your Balance: ${balance}`;
+      }
+    }
+
+
+  </script>
+</body>
+
+</html>
